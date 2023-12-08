@@ -1,16 +1,15 @@
 /*
 TODO
-    - user input
     - fix choosing of empty/flower from vector of empty/flower
 */
 
 #include <iostream>
 #include <cmath>
-#include <string>
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <vector>
+#include <getopt.h>
 
 #define RADIUS_OF_HIVE              400     // in meters
 #define MAX_TIME_OUTSIDE_OF_HIVE    25      // in minutes
@@ -20,109 +19,99 @@ TODO
 #define PROB_OF_GOING_BACK 1-PROB_OF_GOING_TO_EMPTY-PROB_OF_GOING_TO_FLOWER
 #define POLLUTING_TIME              10      // in seconds
 
+#define LLUI long long unsigned int
+
 using namespace std;
 
-double calculateDistanceToHive(std::vector<long long unsigned int> * beePosition){
+double calculateDistanceToHive(vector<int> * beePosition){
     int size = RADIUS_OF_HIVE*4;
-    int a = abs((int)(*beePosition)[0] - size);
-    int b = abs((int)(*beePosition)[1] - size);
+    int a = abs((*beePosition)[0] - size);
+    int b = abs((*beePosition)[1] - size);
     return (double)sqrt(a*a + b*b);
 }
 
-std::vector<int> findSurroundingWhenFlower (long long unsigned int * countOfFlowers, std::vector<int> * beeSurrounding, std::vector<std::vector<int>> * indexArray) {
-    srand (static_cast <unsigned> (time(0)));
-    
-    double individualFlowerChance = 1.0 / (double)(*countOfFlowers);
-    double probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-    long long unsigned int chosenFlower;
-    for (long long unsigned int i = 0; i < (*countOfFlowers)+1; i++){
-        if (probability < individualFlowerChance * ((double)i+1.0)){
-            chosenFlower = i;
-            break;
-        }
-    }
 
-    std::vector<std::vector<int>> indexes;
-    for (long long unsigned int i = 0; i < (*beeSurrounding).size() + 1; i++){
-        if ((*beeSurrounding)[i] == 1){
-            indexes.push_back((*indexArray)[i]);
-        }
-    }
-    return indexes[chosenFlower];
-}
 
-std::vector<int> findSurroundingWhenEmpty (long long unsigned int * countOfEmpty, std::vector<int> * beeSurrounding, std::vector<std::vector<int>> * indexArray) {
-    srand (static_cast <unsigned> (time(0)));
-    
-    double individualEmptyChance = 1.0 / (double)(*countOfEmpty);
-    double probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-    long long unsigned int chosenEmpty;
-    for (long long unsigned int i = 0; i < (*countOfEmpty)+1; i++){
-        if (probability < individualEmptyChance * ((double)i+1.0)){
-            chosenEmpty = i;
-            break;
-        }
-    }
 
-    std::vector<std::vector<int>> indexes;
-    for (long long unsigned int i = 0; i < (*beeSurrounding).size() + 1; i++){
-        if ((*beeSurrounding)[i] == 0){
-            indexes.push_back((*indexArray)[i]);
-        }
-    }
-    return indexes[chosenEmpty];
-}
 
-std::vector<int> findSurroundingWhenBack (std::vector<int> * beeSurrounding, std::vector<std::vector<int>> * indexArray){
-    std::vector<std::vector<int>> indexes;
-    for (long long unsigned int i = 0; i < (*beeSurrounding).size() + 1; i++){
-        if ((*beeSurrounding)[i] == -1){
-            indexes.push_back((*indexArray)[i]);
-        }
-    }
-    return indexes[0];
-}
-
-int main(/*int argc, char** argv*/)
+int main(int argc, char** argv)
 {
     srand (static_cast <unsigned> (time(0)));
 
     double outsideTemperature = 13.0;
     
-    string location = "Gardens";
-    /*
-    if (argc > 1) {
-        for (int i = 1; i < argc; i++) {
-            string arg = argv[i];
-            if (arg == "-t" || arg == "--temperature") {
-                if (i + 1 < argc) {
-                    try {
-                        outsideTemperature = stod(argv[i + 1]);
-                    } catch (const exception& e) {
-                        cout << "Value you input is not a number." << endl;
-                        return 0;
-                    }
-                }
-            } else if (arg == "-l" || arg == "--location") {
-                if (i + 1 < argc) {
-                    location = argv[i + 1];
-                }
+    string location = "Lindens";
+    /*PARSING*/
+    int option_index;
+    int c;
+    char* temperature = nullptr;
+    struct option long_options[] =
+    {
+        {"location", optional_argument, NULL, 'l'},
+        {"temperature", required_argument, NULL, 't'},
+        {0, 0, 0, 0}
+    };
+    while ((c = getopt_long(argc, argv, "t:l:", long_options,&option_index)) != -1)
+    {
+        switch (c)
+        {
+            /*file*/
+            case 't':
+            {
+                temperature = optarg;
+                //cout << temperature << endl;
+                break;
+            }
+            /*port*/
+            case 'l':
+            {
+                location = optarg;
+                //cout << location << endl;
+                break;
+            }
+            case '?':
+            {
+                cerr << "UNKOWN OPTION. Usage: ./bees -t {temperature} -l {location}" << endl;
+                cerr << "Location list: [Lindens,Mixed,Gardens,Rapeseed_oil,Poppy,Sunflower], Default: Lindens" << endl;
+                exit(-1);
+            }case 'h':
+            {
+                cerr << "Usage: ./bees -t {temperature} -l {location}" << endl;
+                cerr << "Location list: [Lindens,Mixed,Gardens,Rapeseed_oil,Poppy,Sunflower], Default: Lindens" << endl;
+                exit(-1);
+            }
+            default:
+            {
+                cerr << "UKNOWN OPTION. Usage: ./bees -t {temperature} -l {location}" << endl;
+                cerr << "Location list: [Lindens,Mixed,Gardens,Rapeseed_oil,Poppy,Sunflower], Default location: Lindens, Default temperature: 15°C" << endl;
+                exit(-1);
             }
         }
-    }*/
-
+    }
     double chanceOfFlower;
-    if (location == "Mixed") {
+    if (location == "Lindens") {
+        chanceOfFlower = 0.7;
+    } else if (location == "Mixed") {
         chanceOfFlower = 0.2;
     } else if (location == "Gardens") {
         chanceOfFlower = 0.6;
-    } else if (location == "Rapeseed oil") {
+    } else if (location == "Rapeseed_oil") {
         chanceOfFlower = 0.9;
     } else if (location == "Poppy") {
         chanceOfFlower = 0.4;
     } else if (location == "Sunflower") {
         chanceOfFlower = 0.8;
+    } else { //Lindens
+        cerr << "WRONG Location input." << endl;
+        exit(-1);
     }
+    if (temperature){
+        outsideTemperature = stoi(temperature);
+        //cout << outsideTemperature << endl;
+    } else {
+        outsideTemperature = 15;
+    }
+
 
     double maxSpeedOfBee;
     if (outsideTemperature < 6.0){
@@ -141,10 +130,10 @@ int main(/*int argc, char** argv*/)
     }
 
     double realSpeedOfBee = maxSpeedOfBee;
-    long long unsigned int areaOfHive = (RADIUS_OF_HIVE * 8) + 1;
-    std::vector<std::vector<int>> hiveArray(areaOfHive, std::vector<int>(areaOfHive, 0));
-    std::vector<long long unsigned int> beePosition(2, RADIUS_OF_HIVE*4);
-    std::vector<long long unsigned int> oldPosition(2, RADIUS_OF_HIVE*4);
+    LLUI areaOfHive = (RADIUS_OF_HIVE * 8) + 1;
+    vector<vector<int>> hiveArray(areaOfHive, vector<int>(areaOfHive, 0));
+    vector<int> beePosition(2, RADIUS_OF_HIVE*4);
+    vector<int> oldPosition(2, RADIUS_OF_HIVE*4);
     int visitedFlowersCount = 0;
     double maxTimeOutsideOfHive = MAX_TIME_OUTSIDE_OF_HIVE * 60;
     double realTimeOutsideOfHive = 0;
@@ -152,8 +141,8 @@ int main(/*int argc, char** argv*/)
     double travelTimeBetweenPlaces = 0.25 / realSpeedOfBee;
 
     float probability;
-    for (long long unsigned int i = 0; i<areaOfHive; i++){
-        for (long long unsigned int j = 0; j<areaOfHive; j++){
+    for (LLUI i = 0; i<areaOfHive; i++){
+        for (LLUI j = 0; j<areaOfHive; j++){
             probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
             if (probability < chanceOfFlower){
                 hiveArray[i][j] = 1;
@@ -164,13 +153,21 @@ int main(/*int argc, char** argv*/)
         }
     }
 
-    hiveArray[beePosition[0]][beePosition[1]] = -1;
+    hiveArray[(LLUI)(beePosition[0])][(LLUI)(beePosition[1])] = -1;
 
-    std::vector<std::vector<int>> indexArray = {{-1, -1}, {-1, 0}, {-1, 1},
+    vector<vector<int>> indexArray = {{-1, -1}, {-1, 0}, {-1, 1},
                                                 {0, -1} ,          {0, 1},
                                                 {1, -1} , {1, 0} , {1, 1} };
-    std::vector<int> chosenSurrounding = {0, 0};
-    
+    vector<int> chosenSurrounding = {0, 0};
+
+    double individualFlowerChance;
+    double individualEmptyChance;
+    int chosenFlower;
+    int chosenEmpty;
+    int countOfFlowers = 0;
+    int countOfEmpty = 0;
+    int countOfBacks = 0;
+    LLUI beeSurroundingSize = 8;
 
     while ((visitedFlowersCount < NUM_OF_FLOWERS_TO_VISIT) && (realTimeOutsideOfHive + timeToReturnToHive <= maxTimeOutsideOfHive)){
         realSpeedOfBee = (maxSpeedOfBee - (visitedFlowersCount * (maxSpeedOfBee / (NUM_OF_FLOWERS_TO_VISIT *2))));
@@ -179,19 +176,19 @@ int main(/*int argc, char** argv*/)
         
         timeToReturnToHive = calculateDistanceToHive(&beePosition) / realSpeedOfBee;
 
-        std::vector<int> beeSurrounding = { hiveArray[beePosition[0] - 1][beePosition[1] - 1],
-                                            hiveArray[beePosition[0] - 1][beePosition[1] - 0],
-                                            hiveArray[beePosition[0] - 1][beePosition[1] + 1],
-                                            hiveArray[beePosition[0] - 0][beePosition[1] - 1],
-                                            hiveArray[beePosition[0] - 0][beePosition[1] + 1],
-                                            hiveArray[beePosition[0] + 1][beePosition[1] - 1],
-                                            hiveArray[beePosition[0] + 1][beePosition[1] - 0],
-                                            hiveArray[beePosition[0] + 1][beePosition[1] + 1] };
+        vector<int> beeSurrounding = {      hiveArray[(LLUI)(beePosition[0]) - 1][(LLUI)(beePosition[1]) - 1],
+                                            hiveArray[(LLUI)(beePosition[0]) - 1][(LLUI)(beePosition[1]) - 0],
+                                            hiveArray[(LLUI)(beePosition[0]) - 1][(LLUI)(beePosition[1]) + 1],
+                                            hiveArray[(LLUI)(beePosition[0]) - 0][(LLUI)(beePosition[1]) - 1],
+                                            hiveArray[(LLUI)(beePosition[0]) - 0][(LLUI)(beePosition[1]) + 1],
+                                            hiveArray[(LLUI)(beePosition[0]) + 1][(LLUI)(beePosition[1]) - 1],
+                                            hiveArray[(LLUI)(beePosition[0]) + 1][(LLUI)(beePosition[1]) - 0],
+                                            hiveArray[(LLUI)(beePosition[0]) + 1][(LLUI)(beePosition[1]) + 1] };
 
-        long long unsigned int countOfFlowers = 0;
-        long long unsigned int countOfEmpty = 0;
-        long long unsigned int countOfBacks = 0;
-        for (long long unsigned int i = 0; i<8; i++){
+        countOfFlowers = 0;
+        countOfEmpty = 0;
+        countOfBacks = 0;
+        for (LLUI i = 0; i<8; i++){
             switch (beeSurrounding[i]){
                 case -1:
                     countOfBacks++;
@@ -210,20 +207,86 @@ int main(/*int argc, char** argv*/)
         if (countOfBacks == 0){
 
             if (countOfFlowers == 0){
-                chosenSurrounding = findSurroundingWhenEmpty(&countOfEmpty,&beeSurrounding,&indexArray);
+                individualEmptyChance = 1.0 / (double)countOfEmpty;
+                probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                for (int i = 0; i < countOfEmpty+1; i++){
+                    if (probability < (individualEmptyChance * (i+1.0))){
+                        chosenEmpty = i;
+                        break;
+                    }
+                }
+
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == 0){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[(LLUI)chosenEmpty][0];
+                chosenSurrounding[1] = indexes[(LLUI)chosenEmpty][1];
             }
             else if (countOfEmpty == 0){
                 visitedFlowersCount++;
                 realTimeOutsideOfHive += POLLUTING_TIME;
-                chosenSurrounding = findSurroundingWhenFlower(&countOfFlowers,&beeSurrounding,&indexArray);
+    
+                individualFlowerChance = 1.0 / (double)(countOfFlowers);
+                probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                for (int i = 0; i < countOfFlowers+1; i++){
+                    if (probability < (individualFlowerChance * (i+1.0))){
+                        chosenFlower = i;
+                        break;
+                    }
+                }
+
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == 1){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[(LLUI)chosenFlower][0];
+                chosenSurrounding[1] = indexes[(LLUI)chosenFlower][1];
             }
             else if (probability < PROB_OF_GOING_TO_FLOWER + PROB_OF_GOING_BACK/2){
                 visitedFlowersCount++;
                 realTimeOutsideOfHive += POLLUTING_TIME;
-                chosenSurrounding = findSurroundingWhenFlower(&countOfFlowers,&beeSurrounding,&indexArray);
+    
+                individualFlowerChance = 1.0 / (double)(countOfFlowers);
+                probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                for (int i = 0; i < countOfFlowers+1; i++){
+                    if (probability < (individualFlowerChance * (i+1.0))){
+                        chosenFlower = i;
+                        break;
+                    }
+                }
+
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == 1){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[(LLUI)chosenFlower][0];
+                chosenSurrounding[1] = indexes[(LLUI)chosenFlower][1];
             }
             else { // (probability <= PROB_OF_GOING_TO_FLOWER + PROB_OF_GOING_TO_EMPTY + PROB_OF_GOING_BACK)
-                chosenSurrounding = findSurroundingWhenEmpty(&countOfEmpty,&beeSurrounding,&indexArray);
+                individualEmptyChance = 1.0 / (double)countOfEmpty;
+                probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                for (int i = 0; i < countOfEmpty+1; i++){
+                    if (probability < (individualEmptyChance * (i+1.0))){
+                        chosenEmpty = i;
+                        break;
+                    }
+                }
+
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == 0){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[(LLUI)chosenEmpty][0];
+                chosenSurrounding[1] = indexes[(LLUI)chosenEmpty][1];
             }
 
         }
@@ -233,13 +296,54 @@ int main(/*int argc, char** argv*/)
             if (probability < PROB_OF_GOING_TO_FLOWER){
                 visitedFlowersCount++;
                 realTimeOutsideOfHive += POLLUTING_TIME;
-                chosenSurrounding = findSurroundingWhenFlower(&countOfFlowers,&beeSurrounding,&indexArray);
+    
+                individualFlowerChance = 1.0 / (double)(countOfFlowers);
+                probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                for (int i = 0; i < countOfFlowers+1; i++){
+                    if (probability < (individualFlowerChance * (i+1.0))){
+                        chosenFlower = i;
+                        break;
+                    }
+                }
+
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == 1){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[(LLUI)chosenFlower][0];
+                chosenSurrounding[1] = indexes[(LLUI)chosenFlower][1];
+
             }
             else if (probability < PROB_OF_GOING_TO_FLOWER + PROB_OF_GOING_TO_EMPTY){
-                chosenSurrounding = findSurroundingWhenEmpty(&countOfEmpty,&beeSurrounding,&indexArray);
+                individualEmptyChance = 1.0 / (double)countOfEmpty;
+                probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                for (int i = 0; i < countOfEmpty+1; i++){
+                    if (probability < (individualEmptyChance * (i+1.0))){
+                        chosenEmpty = i;
+                        break;
+                    }
+                }
+
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == 0){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[(LLUI)chosenEmpty][0];
+                chosenSurrounding[1] = indexes[(LLUI)chosenEmpty][1];
             }
             else { // (probability <= PROB_OF_GOING_TO_FLOWER + PROB_OF_GOING_TO_EMPTY + PROB_OF_GOING_BACK)
-                chosenSurrounding = findSurroundingWhenBack(&beeSurrounding,&indexArray);
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == -1){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[0][0];
+                chosenSurrounding[1] = indexes[0][1];
             }
 
         }
@@ -247,10 +351,33 @@ int main(/*int argc, char** argv*/)
         else if (countOfFlowers == 0){
             
             if (probability < PROB_OF_GOING_TO_EMPTY + PROB_OF_GOING_TO_FLOWER/2){
-                chosenSurrounding = findSurroundingWhenEmpty(&countOfEmpty,&beeSurrounding,&indexArray);
+                individualEmptyChance = 1.0 / (double)countOfEmpty;
+                probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                for (int i = 0; i < countOfEmpty+1; i++){
+                    if (probability < (individualEmptyChance * (i+1.0))){
+                        chosenEmpty = i;
+                        break;
+                    }
+                }
+
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == 0){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[(LLUI)chosenEmpty][0];
+                chosenSurrounding[1] = indexes[(LLUI)chosenEmpty][1];
             }
             else { // (probability <= PROB_OF_GOING_TO_FLOWER + PROB_OF_GOING_TO_EMPTY + PROB_OF_GOING_BACK)
-                chosenSurrounding = findSurroundingWhenBack(&beeSurrounding,&indexArray);
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == -1){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[0][0];
+                chosenSurrounding[1] = indexes[0][1];
             }
 
         }
@@ -260,19 +387,43 @@ int main(/*int argc, char** argv*/)
             if (probability < PROB_OF_GOING_TO_FLOWER + PROB_OF_GOING_TO_EMPTY/2){
                 visitedFlowersCount++;
                 realTimeOutsideOfHive += POLLUTING_TIME;
-                chosenSurrounding = findSurroundingWhenFlower(&countOfFlowers,&beeSurrounding,&indexArray);
+    
+                individualFlowerChance = 1.0 / (double)(countOfFlowers);
+                probability = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                for (int i = 0; i < countOfFlowers+1; i++){
+                    if (probability < (individualFlowerChance * (i+1.0))){
+                        chosenFlower = i;
+                        break;
+                    }
+                }
+
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == 1){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[(LLUI)chosenFlower][0];
+                chosenSurrounding[1] = indexes[(LLUI)chosenFlower][1];
             }
             else { // (probability <= PROB_OF_GOING_TO_FLOWER + PROB_OF_GOING_TO_EMPTY + PROB_OF_GOING_BACK)
-                chosenSurrounding = findSurroundingWhenBack(&beeSurrounding,&indexArray);
+                vector<vector<int>> indexes;
+                for (LLUI i = 0; i < beeSurroundingSize; i++){
+                    if (beeSurrounding[i] == -1){
+                        indexes.push_back(indexArray[i]);
+                    }
+                }
+                chosenSurrounding[0] = indexes[0][0];
+                chosenSurrounding[1] = indexes[0][1];
             }
         }
 
-        hiveArray[oldPosition[0]][oldPosition[1]] = 0;
-        hiveArray[beePosition[0]][beePosition[1]] = -1;
+        hiveArray[(LLUI)(oldPosition[0])][(LLUI)(oldPosition[1])] = 0;
+        hiveArray[(LLUI)(beePosition[0])][(LLUI)(beePosition[1])] = -1;
         oldPosition[0] = beePosition[0];
         oldPosition[1] = beePosition[1];
-        beePosition[0] = beePosition[0] + (long long unsigned int)chosenSurrounding[(int)0];
-        beePosition[1] = beePosition[1] + (long long unsigned int)chosenSurrounding[(int)1];
+        beePosition[0] = beePosition[0] + chosenSurrounding[0];
+        beePosition[1] = beePosition[1] + chosenSurrounding[1];
     }
     cout << "Number of Visited Flowers: " << visitedFlowersCount << endl;
     cout << "Time spent outside of the hive: " << (realTimeOutsideOfHive + timeToReturnToHive) / 60.0 << " minutes" << endl;
